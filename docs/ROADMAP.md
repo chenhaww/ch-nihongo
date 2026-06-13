@@ -81,11 +81,12 @@ words. **Authored, offline** content (no live chatbot — rule #1) in JS data fi
 course; the politeness-register system is the hook (a clerk gets keigo + polite replies, a friend
 casual, a boss formal). See `docs/TASKS/conversation-practice.md`.
 
-- **Prototype shipped**: コンビニ scenario (`src/conversation/conbini.js`), a 会話 tab, and a
-  turn-by-turn runner (`ConversationScreen`) — clerk line auto-speaks, learner picks the most
+- **First batch shipped (6 scenarios)**: コンビニ · レストラン · 職場 (keigo) · 駅 · 病院・薬局 ·
+  道を聞く — each a `src/conversation/<setting>.js` in the registry, with a 会話 tab and a
+  turn-by-turn runner (`ConversationScreen`): clerk line auto-speaks, learner picks the most
   natural reply, gets a "why this is off" note + spoken model reply, and a first-try-natural score.
-- **Next**: restaurant · workplace · station · clinic · directions (each a new
-  `src/conversation/<setting>.js` in the registry).
+- Romaji under sentences is spaced per-kana (`toRomaji(x, { spaced: true })`).
+- **Next**: more settings (hotel, post office, phone/keigo, shopping/sizes), then persistence.
 - **Later**: persist progress (`conversation_progress` in user.db), typed/spoken replies,
   branching dialogue, and a register toggle. Dev-time authoring may draft variants (baked to
   static data — stays offline at runtime).

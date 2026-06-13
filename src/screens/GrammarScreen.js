@@ -95,7 +95,7 @@ function LessonView({ lesson, onBack, onQuiz }) {
             <Text style={[F.body, { flex: 1, lineHeight: 24 }]}>{ex[0]} <Text style={{ fontSize: 12 }}>🔊</Text></Text>
             <Text style={st.regTag}>{reg[ex[2]] || ex[2].toUpperCase()}</Text>
           </View>
-          <Text style={[F.sub, { marginTop: 2, letterSpacing: 0.5 }]}>{toRomaji(ex[1])}</Text>
+          <Text style={[F.sub, { marginTop: 2, letterSpacing: 0.5 }]}>{toRomaji(ex[1], { spaced: true })}</Text>
         </Pressable>
       ))}
 

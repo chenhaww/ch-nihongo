@@ -126,7 +126,7 @@ function Dialogue({ scenario, onExit }) {
       <Pressable onPress={() => speak(turn.npc[1])} style={st.npcBubble}>
         <Text style={st.npcWho}>店員 · CLERK</Text>
         <Text style={[F.body, { fontSize: 19, lineHeight: 28 }]}>{turn.npc[0]} <Text style={{ fontSize: 13 }}>🔊</Text></Text>
-        {turn.npc[1] ? <Text style={[F.sub, { marginTop: 2, letterSpacing: 0.5 }]}>{toRomaji(turn.npc[1])}</Text> : null}
+        {turn.npc[1] ? <Text style={[F.sub, { marginTop: 2, letterSpacing: 0.5 }]}>{toRomaji(turn.npc[1], { spaced: true })}</Text> : null}
         <Text style={[F.sub, { marginTop: 6, color: C.inkSoft }]}>{turn.npcEn}</Text>
       </Pressable>
 
