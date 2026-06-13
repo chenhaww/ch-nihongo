@@ -3,19 +3,18 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, SafeAreaView, Platform, StatusBar } from 'react-native';
 import { SQLiteProvider } from 'expo-sqlite';
 import { initUserDb } from './src/db';
+import { initGrammarTable } from './src/grammar';
 import { C } from './src/theme';
 import HomeScreen from './src/screens/HomeScreen';
 import ReviewScreen from './src/screens/ReviewScreen';
-import LibraryScreen from './src/screens/LibraryScreen';
-import KanaScreen from './src/screens/KanaScreen';
-import ParticlesScreen from './src/screens/ParticlesScreen';
+import GrammarScreen from './src/screens/GrammarScreen';
+import ReferenceScreen from './src/screens/ReferenceScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
 const TABS = [
   { key: 'home', label: '今日', icon: '⛩' },
-  { key: 'kana', label: 'かな', icon: 'あ' },
-  { key: 'particles', label: '助詞', icon: 'を' },
-  { key: 'library', label: '辞書', icon: '📖' },
+  { key: 'grammar', label: '文法', icon: '✏️' },
+  { key: 'reference', label: '辞書', icon: '📖' },
   { key: 'settings', label: '設定', icon: '⚙' },
 ];
 
@@ -38,7 +37,9 @@ function Root() {
   const [reviewing, setReviewing] = useState(null);   // null | 'review' | 'practice'
   const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => { initUserDb().then(() => setReady(true)); }, []);
+  useEffect(() => {
+    (async () => { await initUserDb(); await initGrammarTable(); setReady(true); })();
+  }, []);
   if (!ready) return <Loading />;
 
   return (
@@ -53,11 +54,11 @@ function Root() {
             {tab === 'home' && (
               <HomeScreen
                 onStartReview={(practice) => setReviewing(practice ? 'practice' : 'review')}
+                onGoGrammar={() => setTab('grammar')}
                 refreshKey={refreshKey} />
             )}
-            {tab === 'kana' && <KanaScreen />}
-            {tab === 'particles' && <ParticlesScreen />}
-            {tab === 'library' && <LibraryScreen />}
+            {tab === 'grammar' && <GrammarScreen />}
+            {tab === 'reference' && <ReferenceScreen />}
             {tab === 'settings' && <SettingsScreen />}
           </>
         )}

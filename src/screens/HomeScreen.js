@@ -5,12 +5,14 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { C, F, LEVEL_COLORS } from '../theme';
 import { todayStats } from '../srs';
 import { levelProgress, streakDays } from '../db';
+import { dueCount as grammarDue, studiedCount as grammarStudied } from '../grammar';
 
-export default function HomeScreen({ onStartReview, refreshKey }) {
+export default function HomeScreen({ onStartReview, onGoGrammar, refreshKey }) {
   const contentDb = useSQLiteContext();
   const [stats, setStats] = useState(null);
   const [progress, setProgress] = useState(null);
   const [streak, setStreak] = useState(0);
+  const [gram, setGram] = useState({ due: 0, studied: 0 });
 
   React.useEffect(() => {
     let alive = true;
@@ -18,7 +20,9 @@ export default function HomeScreen({ onStartReview, refreshKey }) {
       const s = await todayStats(contentDb);
       const p = await levelProgress(contentDb);
       const st = await streakDays();
-      if (alive) { setStats(s); setProgress(p); setStreak(st); }
+      const gd = await grammarDue();
+      const gs = await grammarStudied();
+      if (alive) { setStats(s); setProgress(p); setStreak(st); setGram({ due: gd, studied: gs }); }
     })();
     return () => { alive = false; };
   }, [refreshKey]);
@@ -58,6 +62,22 @@ export default function HomeScreen({ onStartReview, refreshKey }) {
         onPress={() => onStartReview(true)}
         style={({ pressed }) => [s.practiceBtn, pressed && { opacity: 0.7 }]}>
         <Text style={s.practiceText}>Practice today's cards again (doesn't affect schedule)</Text>
+      </Pressable>
+
+      <Pressable onPress={onGoGrammar}
+        style={({ pressed }) => [s.grammarCard, pressed && { opacity: 0.85 }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={[F.h2, { color: C.green }]}>文法 Grammar</Text>
+          <Text style={F.sub}>
+            {gram.due > 0
+              ? `${gram.due} lesson${gram.due > 1 ? 's' : ''} ready to review`
+              : gram.studied > 0
+                ? 'All grammar reviewed — learn a new point'
+                : 'Start the N5 grammar course'}
+          </Text>
+        </View>
+        {gram.due > 0 && <View style={s.badge}><Text style={s.badgeText}>{gram.due}</Text></View>}
+        <Text style={{ color: C.inkSoft, fontSize: 20, marginLeft: 8 }}>›</Text>
       </Pressable>
 
       <Text style={[F.h2, { marginTop: 32, marginBottom: 12 }]}>JLPT progress</Text>
@@ -106,6 +126,15 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.line, backgroundColor: C.card,
   },
   practiceText: { color: C.inkSoft, fontSize: 13, fontWeight: '600' },
+  grammarCard: {
+    marginTop: 12, backgroundColor: C.greenSoft, borderRadius: 14,
+    padding: 16, flexDirection: 'row', alignItems: 'center',
+  },
+  badge: {
+    backgroundColor: C.green, borderRadius: 999, minWidth: 26, height: 26,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 7,
+  },
+  badgeText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   barTrack: { height: 7, backgroundColor: C.line, borderRadius: 4, overflow: 'hidden' },
   barFill: { height: 7, borderRadius: 4 },
 });
