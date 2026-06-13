@@ -12,6 +12,7 @@ export default function SettingsScreen() {
   const [newPerDay, setNewPerDay] = useState('10');
   const [newTypes, setNewTypes] = useState('both');
   const [register, setRegister] = useState('polite');
+  const [typedPct, setTypedPct] = useState('30');
 
   useEffect(() => {
     (async () => {
@@ -21,6 +22,7 @@ export default function SettingsScreen() {
       setNewPerDay(await getSetting('newPerDay'));
       setNewTypes(await getSetting('newTypes'));
       setRegister(await getSetting('register'));
+      setTypedPct(await getSetting('typedPct'));
     })();
   }, []);
 
@@ -82,6 +84,16 @@ export default function SettingsScreen() {
       <Section title="New card types">
         <RowChoices value={newTypes} options={[['vocab','Vocab'],['kanji','Kanji'],['both','Both']]}
           onPick={v => save('newTypes', v, setNewTypes)} />
+      </Section>
+
+      <Section title="Typed reviews (English → Japanese)">
+        <Text style={F.sub}>
+          Portion of vocab reviews that show the English and ask you to type
+          the Japanese. Needs the Japanese keyboard enabled in iOS Settings →
+          General → Keyboard → Keyboards.
+        </Text>
+        <RowChoices value={typedPct} options={[['0','Off'],['30','Some'],['60','Lots']]}
+          onPick={v => save('typedPct', v, setTypedPct)} />
       </Section>
 
       <Section title="Politeness register">

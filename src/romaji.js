@@ -35,6 +35,12 @@ function kataToHira(s) {
     String.fromCharCode(ch.charCodeAt(0) - 0x60));
 }
 
+// Normalize for answer checking: katakana→hiragana, strip spaces/punctuation
+export function normalizeKana(s) {
+  return kataToHira((s || '').trim())
+    .replace(/[\s。、．，.,!?！？〜~ー]/g, m => (m === 'ー' ? 'ー' : ''));
+}
+
 export function toRomaji(kana) {
   if (!kana) return '';
   const s = kataToHira(kana);

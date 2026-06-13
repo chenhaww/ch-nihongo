@@ -54,6 +54,13 @@ export async function buildQueue(contentDb) {
     const item = await fetchItem(contentDb, n.type, n.ref_id);
     if (item) queue.push({ ...n, item });
   }
+
+  // Typed-recall mix: deterministic per card so a card keeps its mode all day
+  const typedPct = parseInt(await getSetting('typedPct'), 10) || 0;
+  for (const e of queue) {
+    e.typed = e.type === 'vocab' && !e.isNew &&
+      ((e.item.id * 2654435761) >>> 0) % 100 < typedPct;
+  }
   return queue;
 }
 

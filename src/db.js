@@ -40,6 +40,7 @@ const DEFAULTS = {
   voiceId: '',
   speechRate: '0.9',
   register: 'polite',      // casual | polite | formal — used by grammar (Phase 3)
+  typedPct: '30',          // % of vocab reviews shown English-first for typing
 };
 
 export async function getSetting(key) {
@@ -74,6 +75,12 @@ export async function pickNewItems(contentDb, type, excludeIds, limit) {
   return await contentDb.getAllAsync(
     `SELECT id FROM kanji WHERE jlpt IS NOT NULL ${ex}
      ORDER BY jlpt DESC, COALESCE(freq, 99999), id LIMIT ?`, limit);
+}
+
+export async function fetchSentences(contentDb, vocabId, limit = 2) {
+  return await contentDb.getAllAsync(
+    `SELECT ja, en FROM sentences WHERE vocab_id = ?
+     ORDER BY length(ja) LIMIT ?`, vocabId, limit);
 }
 
 export async function levelProgress(contentDb) {
