@@ -7,10 +7,14 @@ import { C } from './src/theme';
 import HomeScreen from './src/screens/HomeScreen';
 import ReviewScreen from './src/screens/ReviewScreen';
 import LibraryScreen from './src/screens/LibraryScreen';
+import KanaScreen from './src/screens/KanaScreen';
+import ParticlesScreen from './src/screens/ParticlesScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
 const TABS = [
   { key: 'home', label: '今日', icon: '⛩' },
+  { key: 'kana', label: 'かな', icon: 'あ' },
+  { key: 'particles', label: '助詞', icon: 'を' },
   { key: 'library', label: '辞書', icon: '📖' },
   { key: 'settings', label: '設定', icon: '⚙' },
 ];
@@ -51,6 +55,8 @@ function Root() {
                 onStartReview={(practice) => setReviewing(practice ? 'practice' : 'review')}
                 refreshKey={refreshKey} />
             )}
+            {tab === 'kana' && <KanaScreen />}
+            {tab === 'particles' && <ParticlesScreen />}
             {tab === 'library' && <LibraryScreen />}
             {tab === 'settings' && <SettingsScreen />}
           </>
