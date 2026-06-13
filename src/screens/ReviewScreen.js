@@ -9,7 +9,7 @@ import { C, F, LEVEL_COLORS } from '../theme';
 import { buildQueue, buildPracticeQueue, grade, previewIntervals, Rating } from '../srs';
 import { speak } from '../tts';
 import { toRomaji, normalizeKana } from '../romaji';
-import { fetchSentences } from '../db';
+import { fetchSentences, otherReadings } from '../db';
 import { EMOJI } from '../emoji';
 
 const GRADE_META = [
@@ -29,6 +29,7 @@ export default function ReviewScreen({ onDone, practice = false }) {
   const [typedAnswer, setTypedAnswer] = useState('');
   const [typedResult, setTypedResult] = useState(null);   // null | true | false
   const [sentences, setSentences] = useState([]);
+  const [altReadings, setAltReadings] = useState([]);
 
   useEffect(() => {
     (async () => setQueue(
@@ -42,8 +43,11 @@ export default function ReviewScreen({ onDone, practice = false }) {
   useEffect(() => {
     let alive = true;
     setSentences([]);
+    setAltReadings([]);
     if (revealed && entry && entry.type === 'vocab') {
       fetchSentences(contentDb, entry.item.id).then(rows => { if (alive) setSentences(rows); });
+      otherReadings(contentDb, entry.item.expression, entry.item.reading)
+        .then(rows => { if (alive) setAltReadings(rows); });
     }
     return () => { alive = false; };
   }, [revealed, idx]);
@@ -174,6 +178,21 @@ export default function ReviewScreen({ onDone, practice = false }) {
 
                   {typed && EMOJI[item.expression] && (
                     <Text style={{ fontSize: 30, marginTop: 6 }}>{EMOJI[item.expression]}</Text>
+                  )}
+                  {altReadings.length > 0 && (
+                    <View style={s.altBox}>
+                      <Text style={[F.sub, { color: C.inkSoft, marginBottom: 4 }]}>
+                        ⚠ {item.expression} is also read:
+                      </Text>
+                      {altReadings.map((a, i) => (
+                        <Pressable key={i} onPress={() => speak(a.reading)} style={{ marginTop: 2 }}>
+                          <Text style={[F.sub, { color: C.ink }]}>
+                            <Text style={{ color: C.shu, fontWeight: '700' }}>{a.reading}</Text>
+                            {' '}({toRomaji(a.reading)}) — {a.meaning} <Text style={{ fontSize: 11 }}>🔊</Text>
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
                   )}
                   {sentences.map((sen, i) => (
                     <Pressable key={i} onPress={() => speak(sen.ja)} style={s.sentence}>
@@ -308,6 +327,10 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', backgroundColor: C.washi,
     borderWidth: 1, borderColor: C.line, borderRadius: 8,
     paddingHorizontal: 8, paddingVertical: 4, margin: 3,
+  },
+  altBox: {
+    marginTop: 12, backgroundColor: C.washi, borderRadius: 12,
+    borderWidth: 1, borderColor: C.line, padding: 10, width: '100%',
   },
   gradeRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
   gradeBtn: { flex: 1, borderRadius: 14, paddingVertical: 11, alignItems: 'center', paddingHorizontal: 2 },
