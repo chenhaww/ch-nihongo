@@ -2,9 +2,10 @@
 // Grammar progress lives in user.db (grammar_progress table); a simple Leitner
 // ladder schedules lesson reviews and surfaces them on Home.
 import { N5 } from './n5';
+import { N4 } from './n4';
 import { getUserDb } from '../db';
 
-export const LESSONS = [...N5];                       // future: ...N4, ...N3
+export const LESSONS = [...N5, ...N4];                 // future: ...N3
 export const LESSON_BY_ID = Object.fromEntries(LESSONS.map(l => [l.id, l]));
 
 export function lessonsByLevel(level) {
