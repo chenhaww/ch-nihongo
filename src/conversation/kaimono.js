@@ -5,6 +5,7 @@ export const KAIMONO = {
   setting: '買い物',
   settingEn: 'Shopping (clothes)',
   emoji: '🛍️',
+  speaker: '店員 · CLERK',
   level: 4,
   register: 'polite',
   goal: 'Find a shirt, ask to try it on, request a smaller size, check the price, and buy it — politely.',

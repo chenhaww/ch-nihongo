@@ -5,6 +5,7 @@ export const MICHI = {
   setting: '道を聞く',
   settingEn: 'Asking directions',
   emoji: '🗺️',
+  speaker: '通行人 · STRANGER',
   level: 4,
   register: 'polite',
   goal: 'Stop a stranger politely, ask the way, confirm each step back, and thank them.',

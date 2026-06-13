@@ -15,6 +15,7 @@ export const CONBINI = {
   setting: 'コンビニ',
   settingEn: 'Convenience store',
   emoji: '🏪',
+  speaker: '店員 · CLERK',
   level: 4,
   register: 'polite',
   goal: 'Buy a hot bento, decline a bag, pay by card — all in natural clerk-register Japanese.',

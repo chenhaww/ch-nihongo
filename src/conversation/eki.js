@@ -5,6 +5,7 @@ export const EKI = {
   setting: '駅',
   settingEn: 'Train station',
   emoji: '🚉',
+  speaker: '駅員 · STAFF',
   level: 4,
   register: 'polite',
   goal: 'Ask the fare, buy a ticket, find the right line and platform, and confirm the train stops where you need.',

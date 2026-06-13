@@ -5,6 +5,7 @@ export const SHOKUBA = {
   setting: '職場',
   settingEn: 'Workplace',
   emoji: '🏢',
+  speaker: '上司・同僚 · WORK',
   level: 3,
   register: 'formal',
   goal: 'Greet, ask a senior a favor, acknowledge a task, report it done, and leave — in business keigo.',

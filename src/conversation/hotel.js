@@ -5,6 +5,7 @@ export const HOTEL = {
   setting: 'ホテル',
   settingEn: 'Hotel check-in',
   emoji: '🏨',
+  speaker: 'フロント · FRONT DESK',
   level: 4,
   register: 'polite',
   goal: 'Check in under your reservation, give the number of nights, sort breakfast, ask about wifi and checkout.',

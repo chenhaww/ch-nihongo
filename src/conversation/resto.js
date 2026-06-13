@@ -5,6 +5,7 @@ export const RESTO = {
   setting: 'レストラン',
   settingEn: 'Restaurant',
   emoji: '🍜',
+  speaker: '店員 · STAFF',
   level: 4,
   register: 'polite',
   goal: 'Be seated, order a dish (and ask what one is), then ask for the check — in polite register.',

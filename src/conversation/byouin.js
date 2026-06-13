@@ -5,6 +5,7 @@ export const BYOUIN = {
   setting: '病院・薬局',
   settingEn: 'Clinic & pharmacy',
   emoji: '🏥',
+  speaker: '受付・医師 · STAFF',
   level: 4,
   register: 'polite',
   goal: 'Check in, describe a symptom, answer the doctor, and take your medicine instructions — politely.',

@@ -5,6 +5,7 @@ export const DENWA = {
   setting: '電話',
   settingEn: 'Business phone call',
   emoji: '📞',
+  speaker: '相手 · ON THE LINE',
   level: 3,
   register: 'formal',
   goal: 'Call a company in keigo: open properly, ask for someone, handle "they\'re out", and close politely.',

@@ -5,6 +5,7 @@ export const YUUBIN = {
   setting: '郵便局',
   settingEn: 'Post office',
   emoji: '📮',
+  speaker: '局員 · CLERK',
   level: 4,
   register: 'polite',
   goal: 'Send a package abroad, choose airmail, ask how long it takes, and buy stamps — politely.',

@@ -11,10 +11,14 @@ import { MICHI } from './michi';
 import { HOTEL } from './hotel';
 import { YUUBIN } from './yuubin';
 import { DENWA } from './denwa';
+import { KUUKOU } from './kuukou';
+import { GINKOU } from './ginkou';
+import { TANOMU } from './tanomu';
 import { getUserDb } from '../db';
 
 export const SCENARIOS = [
-  CONBINI, RESTO, KAIMONO, SHOKUBA, EKI, BYOUIN, MICHI, HOTEL, YUUBIN, DENWA,
+  CONBINI, RESTO, KAIMONO, SHOKUBA, EKI, BYOUIN, MICHI,
+  HOTEL, YUUBIN, DENWA, KUUKOU, GINKOU, TANOMU,
 ];
 export const SCENARIO_BY_ID = Object.fromEntries(SCENARIOS.map(s => [s.id, s]));
 
