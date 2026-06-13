@@ -4,6 +4,7 @@ import { View, Text, Pressable, StyleSheet, ActivityIndicator, SafeAreaView, Pla
 import { SQLiteProvider } from 'expo-sqlite';
 import { initUserDb } from './src/db';
 import { initGrammarTable } from './src/grammar';
+import { initConversationTable } from './src/conversation';
 import { C } from './src/theme';
 import HomeScreen from './src/screens/HomeScreen';
 import ReviewScreen from './src/screens/ReviewScreen';
@@ -40,7 +41,7 @@ function Root() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    (async () => { await initUserDb(); await initGrammarTable(); setReady(true); })();
+    (async () => { await initUserDb(); await initGrammarTable(); await initConversationTable(); setReady(true); })();
   }, []);
   if (!ready) return <Loading />;
 
@@ -57,6 +58,7 @@ function Root() {
               <HomeScreen
                 onStartReview={(practice) => setReviewing(practice ? 'practice' : 'review')}
                 onGoGrammar={() => setTab('grammar')}
+                onGoConversation={() => setTab('conversation')}
                 refreshKey={refreshKey} />
             )}
             {tab === 'grammar' && <GrammarScreen />}

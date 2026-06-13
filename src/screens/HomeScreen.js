@@ -6,13 +6,15 @@ import { C, F, LEVEL_COLORS } from '../theme';
 import { todayStats } from '../srs';
 import { levelProgress, streakDays } from '../db';
 import { dueCount as grammarDue, studiedCount as grammarStudied } from '../grammar';
+import { conversationStats } from '../conversation';
 
-export default function HomeScreen({ onStartReview, onGoGrammar, refreshKey }) {
+export default function HomeScreen({ onStartReview, onGoGrammar, onGoConversation, refreshKey }) {
   const contentDb = useSQLiteContext();
   const [stats, setStats] = useState(null);
   const [progress, setProgress] = useState(null);
   const [streak, setStreak] = useState(0);
   const [gram, setGram] = useState({ due: 0, studied: 0 });
+  const [conv, setConv] = useState({ played: 0, mastered: 0, total: 0 });
 
   React.useEffect(() => {
     let alive = true;
@@ -22,7 +24,8 @@ export default function HomeScreen({ onStartReview, onGoGrammar, refreshKey }) {
       const st = await streakDays();
       const gd = await grammarDue();
       const gs = await grammarStudied();
-      if (alive) { setStats(s); setProgress(p); setStreak(st); setGram({ due: gd, studied: gs }); }
+      const cv = await conversationStats();
+      if (alive) { setStats(s); setProgress(p); setStreak(st); setGram({ due: gd, studied: gs }); setConv(cv); }
     })();
     return () => { alive = false; };
   }, [refreshKey]);
@@ -80,6 +83,22 @@ export default function HomeScreen({ onStartReview, onGoGrammar, refreshKey }) {
         <Text style={{ color: C.inkSoft, fontSize: 20, marginLeft: 8 }}>›</Text>
       </Pressable>
 
+      <Pressable onPress={onGoConversation}
+        style={({ pressed }) => [s.conversationCard, pressed && { opacity: 0.85 }]}>
+        <Text style={{ fontSize: 22, marginRight: 10 }}>💬</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[F.h2, { color: C.green }]}>会話 Conversations</Text>
+          <Text style={F.sub}>
+            {conv.played === 0
+              ? `Practice real-life situations (${conv.total})`
+              : conv.mastered >= conv.total
+                ? `All ${conv.total} mastered ★ — replay any time`
+                : `${conv.played}/${conv.total} practiced · ${conv.mastered} mastered`}
+          </Text>
+        </View>
+        <Text style={{ color: C.inkSoft, fontSize: 20, marginLeft: 8 }}>›</Text>
+      </Pressable>
+
       <Text style={[F.h2, { marginTop: 32, marginBottom: 12 }]}>JLPT progress</Text>
       {progress && [5, 4, 3, 2, 1].map(lvl => (
         <LevelBar key={lvl} lvl={lvl} progress={progress} />
@@ -129,6 +148,11 @@ const s = StyleSheet.create({
   grammarCard: {
     marginTop: 12, backgroundColor: C.greenSoft, borderRadius: 14,
     padding: 16, flexDirection: 'row', alignItems: 'center',
+  },
+  conversationCard: {
+    marginTop: 10, backgroundColor: C.card, borderRadius: 14,
+    padding: 16, flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1, borderColor: C.line,
   },
   badge: {
     backgroundColor: C.green, borderRadius: 999, minWidth: 26, height: 26,

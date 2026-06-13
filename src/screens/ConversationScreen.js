@@ -1,16 +1,21 @@
 // src/screens/ConversationScreen.js — situational dialogue practice (prototype).
 // Pick the most natural reply each turn; hear the clerk and the model reply.
 // Offline: all content from src/conversation. Mirrors the grammar quiz UX.
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { C, F, LEVEL_COLORS } from '../theme';
 import { speak } from '../tts';
 import { toRomaji } from '../romaji';
-import { SCENARIOS, scorableTurns } from '../conversation';
+import { SCENARIOS, scorableTurns, allScenarioProgress, recordScenario } from '../conversation';
 
 export default function ConversationScreen() {
   const [active, setActive] = useState(null);
-  if (active) return <Dialogue scenario={active} onExit={() => setActive(null)} />;
+  const [progress, setProgress] = useState({});
+
+  const refresh = useCallback(async () => setProgress(await allScenarioProgress()), []);
+  useEffect(() => { refresh(); }, []);
+
+  if (active) return <Dialogue scenario={active} onExit={() => { setActive(null); refresh(); }} />;
 
   return (
     <View style={{ flex: 1, backgroundColor: C.washi, padding: 20, paddingBottom: 0 }}>
@@ -20,20 +25,30 @@ export default function ConversationScreen() {
         actually say it to a clerk, a friend, or a boss.
       </Text>
       <ScrollView contentContainerStyle={{ paddingVertical: 16, paddingBottom: 30 }}>
-        {SCENARIOS.map(sc => (
-          <Pressable key={sc.id} onPress={() => setActive(sc)} style={st.card}>
-            <Text style={{ fontSize: 30 }}>{sc.emoji}</Text>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={F.h2}>{sc.setting} · {sc.settingEn}</Text>
-              <Text style={[F.sub, { marginTop: 2, lineHeight: 18 }]} numberOfLines={2}>{sc.goal}</Text>
-            </View>
-            <View style={[st.levelTag, { backgroundColor: LEVEL_COLORS[sc.level] }]}>
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 11 }}>N{sc.level}</Text>
-            </View>
-          </Pressable>
-        ))}
+        {SCENARIOS.map(sc => {
+          const pr = progress[sc.id];
+          const pct = pr ? Math.round(100 * pr.best_ratio) : null;
+          const mastered = pr && pr.best_ratio >= 1;
+          return (
+            <Pressable key={sc.id} onPress={() => setActive(sc)} style={st.card}>
+              <Text style={{ fontSize: 30 }}>{sc.emoji}</Text>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={F.h2}>{sc.setting} · {sc.settingEn}</Text>
+                <Text style={[F.sub, { marginTop: 2, lineHeight: 18 }]} numberOfLines={2}>{sc.goal}</Text>
+                {pct !== null && (
+                  <Text style={{ marginTop: 4, fontSize: 12, fontWeight: '700', color: mastered ? C.green : C.gold }}>
+                    {mastered ? '★ mastered' : `best ${pct}% natural`}
+                  </Text>
+                )}
+              </View>
+              <View style={[st.levelTag, { backgroundColor: LEVEL_COLORS[sc.level] }]}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 11 }}>N{sc.level}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
         <Text style={[F.sub, { textAlign: 'center', marginTop: 18, lineHeight: 18 }]}>
-          More settings coming: restaurant, workplace, station, clinic…
+          More settings coming: airport, bank, asking a favor…
         </Text>
       </ScrollView>
     </View>
@@ -53,6 +68,14 @@ function Dialogue({ scenario, onExit }) {
   useEffect(() => {
     if (started && !done && turn?.npc?.[1]) speak(turn.npc[1]);
   }, [i, started, done]);
+
+  // Persist the run when it completes (best first-try-natural ratio is kept).
+  useEffect(() => {
+    if (done) {
+      const total = scorableTurns(scenario);
+      recordScenario(scenario.id, total ? natural / total : 0);
+    }
+  }, [done]);
 
   if (!started) {
     return (
