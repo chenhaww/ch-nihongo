@@ -30,9 +30,11 @@ App.js                         一 5th tab: 会話 (💬)
 {
   id: 'conv-conbini-01', setting: 'コンビニ', settingEn: 'Convenience store',
   emoji: '🏪', level: 4, register: 'polite',
+  speaker: '店員 · CLERK',                 // who the other party is (bubble label)
   goal: '…', intro: '…', outro: '…',
   turns: [
     {
+      id: 'heat',                          // optional; required only for branch targets
       npc: ['お弁当は温めますか。', 'おべんとうはあたためますか。'],   // [ja, kana] — kana drives TTS
       npcEn: '"Shall I heat the bento?"',
       stage: 'optional scene-setting line shown above the bubble',
@@ -51,6 +53,12 @@ Rules (mirror the grammar files):
   (spoken back when the learner picks an unnatural one).
 - `ok` options carry a `note` (why it's natural); non-`ok` options carry a `why` (what's off —
   usually register, bluntness, or meaning). Genuinely instructive, no filler.
+- `speaker` labels the bubble (友達 · FRIEND, 駅員 · STAFF…); defaults to 相手 if omitted.
+
+**Branching (optional):** give turns an `id`, and options a `goto` (a turn `id`, or `'end'`).
+The runner follows the chosen option's `goto`; an unnatural pick (no `goto`) falls back to the
+first natural option's `goto`, else linear order. `cafe.js` is the reference (forks on
+for-here / to-go). Scoring is over turns actually visited. Scenarios with no `goto` stay linear.
 
 ## Interaction (already built)
 

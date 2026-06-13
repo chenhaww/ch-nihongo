@@ -14,11 +14,15 @@ import { DENWA } from './denwa';
 import { KUUKOU } from './kuukou';
 import { GINKOU } from './ginkou';
 import { TANOMU } from './tanomu';
+import { CAFE } from './cafe';
+import { TAXI } from './taxi';
+import { SALON } from './hairsalon';
+import { KUYAKUSHO } from './kuyakusho';
 import { getUserDb } from '../db';
 
 export const SCENARIOS = [
-  CONBINI, RESTO, KAIMONO, SHOKUBA, EKI, BYOUIN, MICHI,
-  HOTEL, YUUBIN, DENWA, KUUKOU, GINKOU, TANOMU,
+  CONBINI, RESTO, CAFE, KAIMONO, SHOKUBA, EKI, TAXI, BYOUIN, SALON, MICHI,
+  HOTEL, YUUBIN, DENWA, KUUKOU, GINKOU, KUYAKUSHO, TANOMU,
 ];
 export const SCENARIO_BY_ID = Object.fromEntries(SCENARIOS.map(s => [s.id, s]));
 

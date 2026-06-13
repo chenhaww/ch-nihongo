@@ -1,7 +1,7 @@
 // src/screens/ConversationScreen.js — situational dialogue practice (prototype).
 // Pick the most natural reply each turn; hear the clerk and the model reply.
 // Offline: all content from src/conversation. Mirrors the grammar quiz UX.
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, Pressable, ScrollView, StyleSheet,
   TextInput, KeyboardAvoidingView, Platform,
@@ -9,7 +9,7 @@ import {
 import { C, F, LEVEL_COLORS } from '../theme';
 import { speak } from '../tts';
 import { toRomaji, normalizeKana } from '../romaji';
-import { SCENARIOS, scorableTurns, allScenarioProgress, recordScenario } from '../conversation';
+import { SCENARIOS, allScenarioProgress, recordScenario } from '../conversation';
 
 export default function ConversationScreen() {
   const [active, setActive] = useState(null);
@@ -59,34 +59,66 @@ export default function ConversationScreen() {
 }
 
 function Dialogue({ scenario, onExit }) {
+  // Turns are navigated by reference. A scenario is "branching" when any option
+  // carries a `goto` (a turn id, or 'end'); otherwise it advances linearly.
+  const turnsById = useMemo(() => {
+    const m = {};
+    scenario.turns.forEach((t, idx) => { m[t.id ?? idx] = t; });
+    return m;
+  }, [scenario]);
+  const branching = useMemo(
+    () => scenario.turns.some(t => t.options.some(o => o.goto)), [scenario]);
+
   const [started, setStarted] = useState(false);
   const [typedMode, setTypedMode] = useState(false);
-  const [i, setI] = useState(0);
+  const [cur, setCur] = useState(scenario.turns[0]);
+  const [step, setStep] = useState(1);
   const [picked, setPicked] = useState(null);      // tap mode: chosen option index
   const [typed, setTyped] = useState('');          // typed mode: input
   const [typedRes, setTypedRes] = useState(null);  // typed mode: { natural, credited }
+  const [routeOpt, setRouteOpt] = useState(null);  // option whose goto we follow
   const [natural, setNatural] = useState(0);        // first-try natural replies
+  const [asked, setAsked] = useState(0);            // turns answered (denominator)
   const [done, setDone] = useState(false);
 
-  const turn = scenario.turns[i];
+  const turn = cur;
   const answered = picked !== null || typedRes !== null;
 
-  // Auto-speak the clerk's line when a new turn appears.
+  // Auto-speak the other party's line when a new turn appears.
   useEffect(() => {
     if (started && !done && turn?.npc?.[1]) speak(turn.npc[1]);
-  }, [i, started, done]);
+  }, [cur, started, done]);
 
-  // Persist the run when it completes (best first-try-natural ratio is kept).
+  // Persist the run when it completes (best natural ratio over turns answered).
   useEffect(() => {
-    if (done) {
-      const total = scorableTurns(scenario);
-      recordScenario(scenario.id, total ? natural / total : 0);
-    }
+    if (done) recordScenario(scenario.id, asked ? natural / asked : 0);
   }, [done]);
 
   function reset() {
-    setStarted(false); setI(0); setPicked(null);
-    setTyped(''); setTypedRes(null); setNatural(0); setDone(false);
+    setStarted(false); setCur(scenario.turns[0]); setStep(1); setPicked(null);
+    setTyped(''); setTypedRes(null); setRouteOpt(null);
+    setNatural(0); setAsked(0); setDone(false);
+  }
+
+  // Resolve and move to the next turn, following the routing option's `goto`,
+  // else the natural option's goto, else linear order; 'end' finishes the run.
+  function advance() {
+    setAsked(c => c + 1);
+    const router = (routeOpt && routeOpt.goto)
+      ? routeOpt
+      : (turn.options.find(o => o.ok && o.goto) || null);
+    const g = router?.goto;
+    if (g === 'end') { setDone(true); return; }
+    if (g && turnsById[g]) {
+      setCur(turnsById[g]); setStep(s => s + 1);
+      setPicked(null); setTyped(''); setTypedRes(null); setRouteOpt(null);
+      return;
+    }
+    const idx = scenario.turns.indexOf(turn);
+    if (idx + 1 < scenario.turns.length) {
+      setCur(scenario.turns[idx + 1]); setStep(s => s + 1);
+      setPicked(null); setTyped(''); setTypedRes(null); setRouteOpt(null);
+    } else setDone(true);
   }
 
   if (!started) {
@@ -124,8 +156,8 @@ function Dialogue({ scenario, onExit }) {
   }
 
   if (done) {
-    const total = scorableTurns(scenario);
-    const allNatural = natural === total;
+    const total = asked;
+    const allNatural = total > 0 && natural === total;
     return (
       <View style={{ flex: 1, backgroundColor: C.washi, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <Text style={{ fontSize: 52 }}>{allNatural ? '🎉' : '🗣'}</Text>
@@ -150,8 +182,9 @@ function Dialogue({ scenario, onExit }) {
 
   function pick(idx) {
     if (answered) return;
-    setPicked(idx);
     const opt = turn.options[idx];
+    setPicked(idx);
+    setRouteOpt(opt);                 // a chosen branch follows its own goto
     if (opt.ok) {
       setNatural(n => n + 1);
       if (opt.kana) speak(opt.kana);
@@ -163,11 +196,18 @@ function Dialogue({ scenario, onExit }) {
   function checkTyped() {
     if (answered) return;
     const ans = normalizeKana(typed);
-    const matched = ans.length > 0 && naturalOpts.some(o =>
-      ans === normalizeKana(o.kana || '') || ans === normalizeKana(o.ja));
-    if (matched) setNatural(n => n + 1);
-    setTypedRes({ natural: matched, credited: false });
+    const matchedOpt = ans.length > 0 ? naturalOpts.find(o =>
+      ans === normalizeKana(o.kana || '') || ans === normalizeKana(o.ja)) : null;
+    if (matchedOpt) setNatural(n => n + 1);
+    setRouteOpt(matchedOpt || model);   // route by what they said, else the model branch
+    setTypedRes({ natural: !!matchedOpt, credited: false });
     if (model?.kana) speak(model.kana);
+  }
+
+  function skipTyped() {
+    if (answered) return;
+    setRouteOpt(model);
+    setTypedRes({ natural: false, credited: false });
   }
 
   function credit() {
@@ -175,11 +215,7 @@ function Dialogue({ scenario, onExit }) {
     setTypedRes(r => ({ ...r, natural: true, credited: true }));
   }
 
-  function next() {
-    if (i + 1 < scenario.turns.length) {
-      setI(i + 1); setPicked(null); setTyped(''); setTypedRes(null);
-    } else setDone(true);
-  }
+  const next = advance;
 
   return (
     <KeyboardAvoidingView
@@ -188,7 +224,7 @@ function Dialogue({ scenario, onExit }) {
     <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
         <Pressable onPress={onExit}><Text style={F.sub}>‹ exit</Text></Pressable>
-        <Text style={F.mono}>TURN {i + 1} / {scenario.turns.length}</Text>
+        <Text style={F.mono}>TURN {step}{branching ? '' : ` / ${scenario.turns.length}`}</Text>
       </View>
 
       {turn.stage && <Text style={[F.sub, { marginTop: 14, fontStyle: 'italic' }]}>{turn.stage}</Text>}
@@ -236,7 +272,7 @@ function Dialogue({ scenario, onExit }) {
           <Pressable onPress={checkTyped} style={st.checkBtn}>
             <Text style={{ color: '#fff', fontWeight: '700' }}>Check</Text>
           </Pressable>
-          <Pressable onPress={() => setTypedRes({ natural: false, credited: false })} style={{ marginTop: 12, alignItems: 'center' }}>
+          <Pressable onPress={skipTyped} style={{ marginTop: 12, alignItems: 'center' }}>
             <Text style={F.sub}>show me a natural reply</Text>
           </Pressable>
         </View>
