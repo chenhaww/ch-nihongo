@@ -31,7 +31,7 @@ export default function App() {
 function Root() {
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState('home');
-  const [reviewing, setReviewing] = useState(false);
+  const [reviewing, setReviewing] = useState(null);   // null | 'review' | 'practice'
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => { initUserDb().then(() => setReady(true)); }, []);
@@ -41,11 +41,15 @@ function Root() {
     <SafeAreaView style={s.safe}>
       <View style={{ flex: 1 }}>
         {reviewing ? (
-          <ReviewScreen onDone={() => { setReviewing(false); setRefreshKey(k => k + 1); }} />
+          <ReviewScreen
+            practice={reviewing === 'practice'}
+            onDone={() => { setReviewing(null); setRefreshKey(k => k + 1); }} />
         ) : (
           <>
             {tab === 'home' && (
-              <HomeScreen onStartReview={() => setReviewing(true)} refreshKey={refreshKey} />
+              <HomeScreen
+                onStartReview={(practice) => setReviewing(practice ? 'practice' : 'review')}
+                refreshKey={refreshKey} />
             )}
             {tab === 'library' && <LibraryScreen />}
             {tab === 'settings' && <SettingsScreen />}

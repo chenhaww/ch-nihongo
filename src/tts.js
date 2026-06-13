@@ -13,10 +13,11 @@ export async function listJapaneseVoices() {
   }
 }
 
-export async function speak(text) {
+export async function speak(text, { slow = false } = {}) {
   if (!text) return;
   const voiceId = await getSetting('voiceId');
-  const rate = parseFloat(await getSetting('speechRate')) || 0.9;
+  let rate = parseFloat(await getSetting('speechRate')) || 0.9;
+  if (slow) rate = Math.min(rate, 0.5);   // 🐢 deliberate, syllable-clear pace
   Speech.stop();
   Speech.speak(text, {
     language: 'ja-JP',

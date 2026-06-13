@@ -110,6 +110,31 @@ export async function grade(entry, rating) {
   return next.due;
 }
 
+// Practice mode: re-review cards studied today (or the most recent ones)
+// WITHOUT writing anything to the FSRS schedule.
+export async function buildPracticeQueue(contentDb, limit = 20) {
+  const udb = getUserDb();
+  const today = new Date().toISOString().slice(0, 10);
+  let rows = await udb.getAllAsync(
+    `SELECT DISTINCT c.* FROM cards c JOIN reviews r ON r.card_id = c.id
+     WHERE date(r.reviewed_at) = ? LIMIT ?`, today, limit);
+  if (!rows.length) {
+    rows = await udb.getAllAsync(
+      'SELECT * FROM cards ORDER BY created_at DESC LIMIT ?', limit);
+  }
+  // shuffle so repeat runs aren't identical
+  for (let i = rows.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [rows[i], rows[j]] = [rows[j], rows[i]];
+  }
+  const queue = [];
+  for (const row of rows) {
+    const item = await fetchItem(contentDb, row.type, row.ref_id);
+    if (item) queue.push({ cardRow: row, type: row.type, item, isNew: false, practice: true });
+  }
+  return queue;
+}
+
 export async function todayStats(contentDb) {
   const udb = getUserDb();
   const nowIso = new Date().toISOString();

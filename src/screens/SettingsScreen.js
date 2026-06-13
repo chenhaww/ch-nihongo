@@ -70,7 +70,7 @@ export default function SettingsScreen() {
       </Section>
 
       <Section title="Speech rate">
-        <RowChoices value={rate} options={[['0.7','Slow'],['0.9','Normal'],['1.1','Fast']]}
+        <RowChoices value={rate} options={[['0.45','Very slow'],['0.7','Slow'],['0.9','Normal'],['1.1','Fast']]}
           onPick={v => { save('speechRate', v, setRate); speak('日本語'); }} />
       </Section>
 

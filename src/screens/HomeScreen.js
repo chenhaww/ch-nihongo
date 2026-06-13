@@ -46,12 +46,18 @@ export default function HomeScreen({ onStartReview, refreshKey }) {
       </View>
 
       <Pressable
-        onPress={onStartReview}
+        onPress={() => onStartReview(false)}
         disabled={total === 0}
         style={({ pressed }) => [s.cta, total === 0 && { opacity: 0.35 }, pressed && { opacity: 0.8 }]}>
         <Text style={s.ctaText}>
           {total === 0 ? 'All done for today 🎉' : `Start review (${total})`}
         </Text>
+      </Pressable>
+
+      <Pressable
+        onPress={() => onStartReview(true)}
+        style={({ pressed }) => [s.practiceBtn, pressed && { opacity: 0.7 }]}>
+        <Text style={s.practiceText}>Practice today's cards again (doesn't affect schedule)</Text>
       </Pressable>
 
       <Text style={[F.h2, { marginTop: 32, marginBottom: 12 }]}>JLPT progress</Text>
@@ -95,6 +101,11 @@ const s = StyleSheet.create({
   statNum: { fontSize: 28, fontWeight: '700', color: C.ink },
   cta: { marginTop: 24, backgroundColor: C.shu, borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
   ctaText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  practiceBtn: {
+    marginTop: 10, borderRadius: 14, paddingVertical: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: C.line, backgroundColor: C.card,
+  },
+  practiceText: { color: C.inkSoft, fontSize: 13, fontWeight: '600' },
   barTrack: { height: 7, backgroundColor: C.line, borderRadius: 4, overflow: 'hidden' },
   barFill: { height: 7, borderRadius: 4 },
 });
