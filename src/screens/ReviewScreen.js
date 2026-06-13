@@ -66,7 +66,9 @@ export default function ReviewScreen({ onDone, practice = false }) {
 
   const { item, type, typed } = entry;
   const front = type === 'vocab' ? item.expression : item.literal;
-  const speakText = type === 'vocab' ? item.expression : kanjiSpeakText(item);
+  // Always speak a kana reading, never the raw kanji — otherwise the OS TTS may
+  // pick a different reading than the one shown (e.g. 開く read ひらく, not あく).
+  const speakText = type === 'vocab' ? (item.reading || item.expression) : kanjiSpeakText(item);
   const meanings = type === 'vocab'
     ? item.meaning
     : JSON.parse(item.meanings || '[]').join(', ');
@@ -161,11 +163,10 @@ export default function ReviewScreen({ onDone, practice = false }) {
                   )}
                   {type === 'kanji' && (
                     <>
-                      <Text style={[F.body, { color: C.inkSoft, textAlign: 'center' }]}>
-                        音 {readingLine(item.on_yomi)}
-                      </Text>
-                      <Text style={[F.body, { color: C.inkSoft, marginTop: 2, textAlign: 'center' }]}>
-                        訓 {readingLine(item.kun_yomi)}
+                      <ReadingRow label="音" json={item.on_yomi} />
+                      <ReadingRow label="訓" json={item.kun_yomi} />
+                      <Text style={[F.sub, { marginTop: 6, textAlign: 'center', fontStyle: 'italic' }]}>
+                        tap a reading to hear it · 音 on-yomi · 訓 kun-yomi
                       </Text>
                     </>
                   )}
@@ -237,17 +238,39 @@ export default function ReviewScreen({ onDone, practice = false }) {
   );
 }
 
-function kanjiSpeakText(item) {
-  const kun = JSON.parse(item.kun_yomi || '[]');
-  const on = JSON.parse(item.on_yomi || '[]');
-  const r = (kun[0] || on[0] || item.literal).replace(/[.\-]/g, '');
-  return r;
+// Strip okurigana/long-mark notation so the audio is a clean kana reading
+// (ふた.つ → ふたつ, く.う → くう).
+function cleanReading(r) {
+  return (r || '').replace(/[.\-]/g, '');
 }
 
-function readingLine(jsonArr) {
-  const arr = JSON.parse(jsonArr || '[]');
-  if (!arr.length) return '—';
-  return arr.slice(0, 4).map(r => `${r} (${toRomaji(r)})`).join('、');
+// The reading spoken on reveal / via 🔊. Prefer the on-yomi: for a kanji read in
+// isolation (especially numbers like 二 → に) the on-reading is the standard
+// "name"; the kun-reading (二 → ふた) only applies inside specific words.
+function kanjiSpeakText(item) {
+  const on = JSON.parse(item.on_yomi || '[]');
+  const kun = JSON.parse(item.kun_yomi || '[]');
+  return cleanReading(on[0] || kun[0] || item.literal);
+}
+
+// A row of individually tappable readings — each speaks exactly its own kana,
+// so the audio always matches the label the learner taps.
+function ReadingRow({ label, json }) {
+  const arr = JSON.parse(json || '[]').slice(0, 4);
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginTop: 4 }}>
+      <Text style={[F.body, { color: C.inkSoft, marginRight: 4 }]}>{label}</Text>
+      {arr.length === 0
+        ? <Text style={[F.body, { color: C.inkSoft }]}>—</Text>
+        : arr.map((r, i) => (
+            <Pressable key={i} onPress={() => speak(cleanReading(r))} style={s.readingChip}>
+              <Text style={{ color: C.ink, fontSize: 15 }}>{r}</Text>
+              <Text style={{ color: C.inkSoft, fontSize: 11, marginLeft: 3 }}>{toRomaji(cleanReading(r))}</Text>
+              <Text style={{ fontSize: 10, marginLeft: 3 }}>🔊</Text>
+            </Pressable>
+          ))}
+    </View>
+  );
 }
 
 function Tag({ text, color }) {
@@ -281,6 +304,11 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.line, padding: 10, width: '100%',
   },
   speakBtn: { backgroundColor: C.shuSoft, borderRadius: 999, padding: 12 },
+  readingChip: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.washi,
+    borderWidth: 1, borderColor: C.line, borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 4, margin: 3,
+  },
   gradeRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
   gradeBtn: { flex: 1, borderRadius: 14, paddingVertical: 11, alignItems: 'center', paddingHorizontal: 2 },
   gradeLabel: { color: '#fff', fontWeight: '700', fontSize: 13 },
