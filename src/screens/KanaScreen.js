@@ -36,11 +36,14 @@ const YOON = [
 
 const toKata = s => s.replace(/[\u3041-\u3096]/g,
   ch => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+const toHira = s => s.replace(/[\u30a1-\u30f6]/g,
+  ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
 
 export default function KanaScreen() {
   const contentDb = useSQLiteContext();
   const [script, setScript] = useState('hira');   // hira | kata
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(null);   // always the HIRAGANA form
+  const [selectedShown, setSelectedShown] = useState(null); // as displayed
   const [words, setWords] = useState([]);
 
   const conv = k => (script === 'kata' ? toKata(k) : k);
@@ -49,9 +52,13 @@ export default function KanaScreen() {
     let alive = true;
     if (!selected) { setWords([]); return; }
     (async () => {
+      // Search by hiragana (covers most readings) AND the katakana form
+      // (for loanwords stored with katakana readings).
+      const kata = toKata(selected);
       const rows = await contentDb.getAllAsync(
-        `SELECT * FROM vocab WHERE reading LIKE ? ORDER BY jlpt DESC, id LIMIT 60`,
-        selected + '%');
+        `SELECT * FROM vocab WHERE reading LIKE ? OR reading LIKE ?
+         ORDER BY jlpt DESC, id LIMIT 80`,
+        selected + '%', kata + '%');
       if (alive) setWords(rows);
     })();
     return () => { alive = false; };
@@ -59,7 +66,10 @@ export default function KanaScreen() {
 
   function tapKana(k) {
     if (!k) return;
-    setSelected(k);
+    // k is in the displayed script; store hiragana base for searching
+    const hira = script === 'kata' ? toHira(k) : k;
+    setSelected(hira);
+    setSelectedShown(k);
     speak(k, { slow: true });
   }
 
@@ -77,16 +87,23 @@ export default function KanaScreen() {
       </View>
       <Text style={[F.sub, { marginBottom: 8 }]}>tap a kana to hear it and see words that start with it</Text>
 
-      <Grid rows={BASIC} conv={conv} selected={selected} onTap={tapKana} cols={5} />
+      <Grid rows={BASIC} conv={conv} selected={selected} toHira={toHira} script={script} onTap={tapKana} cols={5} />
       <Text style={[F.h2, { marginTop: 14, marginBottom: 6 }]}>゛゜ dakuten</Text>
-      <Grid rows={DAKUTEN} conv={conv} selected={selected} onTap={tapKana} cols={5} />
+      <Grid rows={DAKUTEN} conv={conv} selected={selected} toHira={toHira} script={script} onTap={tapKana} cols={5} />
       <Text style={[F.h2, { marginTop: 14, marginBottom: 6 }]}>ゃゅょ combinations</Text>
-      <Grid rows={YOON} conv={conv} selected={selected} onTap={tapKana} cols={3} />
+      <Grid rows={YOON} conv={conv} selected={selected} toHira={toHira} script={script} onTap={tapKana} cols={3} />
 
       {selected && (
-        <Text style={[F.h2, { marginTop: 18, marginBottom: 8 }]}>
-          {selected} ({toRomaji(selected)}) — {words.length ? `${words.length} words` : 'no words found'}
-        </Text>
+        <View style={st.resultHeader}>
+          <Text style={[F.h2, { color: C.shu }]}>
+            {selectedShown} ({toRomaji(selected)})
+          </Text>
+          <Text style={F.sub}>
+            {words.length
+              ? `${words.length} word${words.length > 1 ? 's' : ''} starting with this kana ↓`
+              : 'no words start with this kana'}
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -114,14 +131,15 @@ export default function KanaScreen() {
   );
 }
 
-function Grid({ rows, conv, selected, onTap, cols }) {
+function Grid({ rows, conv, selected, toHira, script, onTap, cols }) {
   return (
     <View>
       {rows.map((row, ri) => (
         <View key={ri} style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
           {row.map((k, ci) => {
             const kk = k ? conv(k) : '';
-            const active = kk && selected === kk;
+            const base = kk ? (script === 'kata' ? toHira(kk) : kk) : '';
+            const active = base && selected === base;
             return (
               <Pressable key={ci} onPress={() => onTap(kk)} disabled={!kk}
                 style={[st.cell, { flex: 1 }, !kk && { opacity: 0 },
@@ -149,6 +167,10 @@ const st = StyleSheet.create({
   cell: {
     backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 10,
     alignItems: 'center', paddingVertical: 8,
+  },
+  resultHeader: {
+    marginTop: 18, marginBottom: 8, paddingTop: 14,
+    borderTopWidth: 1, borderTopColor: C.line,
   },
   row: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: C.card,

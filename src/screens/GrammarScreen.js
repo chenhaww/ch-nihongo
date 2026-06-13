@@ -195,6 +195,7 @@ function Quiz({ lesson, onDone }) {
             {!isRight && (
               <Text style={[F.sub, { lineHeight: 19, color: C.ink, marginBottom: 6 }]}>
                 You chose 「{q.options[picked]}」. The answer is 「{q.options[q.answer]}」.
+                {q.why && q.why[picked] ? ` ${q.why[picked]}` : ''}
               </Text>
             )}
             <Text style={[F.sub, { lineHeight: 19, color: C.ink }]}>{q.explain}</Text>
