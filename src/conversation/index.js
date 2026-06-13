@@ -7,8 +7,9 @@ import { SHOKUBA } from './shokuba';
 import { EKI } from './eki';
 import { BYOUIN } from './byouin';
 import { MICHI } from './michi';
+import { KAIMONO } from './kaimono';
 
-export const SCENARIOS = [CONBINI, RESTO, SHOKUBA, EKI, BYOUIN, MICHI];
+export const SCENARIOS = [CONBINI, RESTO, KAIMONO, SHOKUBA, EKI, BYOUIN, MICHI];
 export const SCENARIO_BY_ID = Object.fromEntries(SCENARIOS.map(s => [s.id, s]));
 
 // Count how many turns offer at least one natural reply (used for the summary).
