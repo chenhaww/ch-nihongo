@@ -62,7 +62,7 @@ export default function GrammarScreen() {
                 </View>
                 {pr && (
                   <Text style={{ color: mastered ? C.green : C.gold, fontSize: 11, fontWeight: '700' }}>
-                    {mastered ? '★ mastered' : `box ${pr.box}`}
+                    {mastered ? '★ mastered' : `learning · lvl ${pr.box}`}
                   </Text>
                 )}
               </Pressable>
@@ -131,13 +131,16 @@ function Quiz({ lesson, onDone }) {
   function pick(idx) {
     if (picked !== null) return;
     setPicked(idx);
-    const isRight = idx === q.answer;
-    const nc = correct + (isRight ? 1 : 0);
-    if (isRight) setCorrect(nc);
-    setTimeout(() => {
-      if (i + 1 < lesson.quiz.length) { setI(i + 1); setPicked(null); }
-      else finish(nc / lesson.quiz.length);
-    }, 1100);
+    if (idx === q.answer) {
+      setCorrect(c => c + 1);
+      const sentence = correctSentence(q);
+      if (sentence) speak(sentence);   // hear the right answer in context
+    }
+  }
+
+  function next() {
+    if (i + 1 < lesson.quiz.length) { setI(i + 1); setPicked(null); }
+    else finish((correct) / lesson.quiz.length);
   }
 
   if (finished) {
@@ -149,7 +152,7 @@ function Quiz({ lesson, onDone }) {
         <Text style={[F.sub, { marginTop: 6, textAlign: 'center' }]}>
           {correct} / {lesson.quiz.length} correct
           {result.passed
-            ? `\nPassed! Next review in ${reviewGap(result.box)}.`
+            ? `\nPassed! This lesson moves to box ${result.box} — next review in ${reviewGap(result.box)}.`
             : '\nReview the lesson and try again — you\'ll get it.'}
         </Text>
         <Pressable onPress={onDone} style={[st.quizBtn, { paddingHorizontal: 40, marginTop: 24 }]}>
@@ -158,6 +161,9 @@ function Quiz({ lesson, onDone }) {
       </View>
     );
   }
+
+  const isRight = picked === q.answer;
+  const sentence = correctSentence(q);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.washi, padding: 20 }}>
@@ -181,14 +187,53 @@ function Quiz({ lesson, onDone }) {
       </View>
 
       {picked !== null && (
-        <View style={st.explainBox}>
-          <Text style={[F.sub, { lineHeight: 19, color: C.ink }]}>
-            {picked === q.answer ? '✓ ' : '✗ '}{q.explain}
-          </Text>
-        </View>
+        <>
+          <View style={[st.explainBox, { borderColor: isRight ? C.green : C.shu }]}>
+            <Text style={{ fontWeight: '700', color: isRight ? C.green : C.shu, marginBottom: 4 }}>
+              {isRight ? '✓ Correct' : '✗ Not quite'}
+            </Text>
+            {!isRight && (
+              <Text style={[F.sub, { lineHeight: 19, color: C.ink, marginBottom: 6 }]}>
+                You chose 「{q.options[picked]}」. The answer is 「{q.options[q.answer]}」.
+              </Text>
+            )}
+            <Text style={[F.sub, { lineHeight: 19, color: C.ink }]}>{q.explain}</Text>
+
+            {sentence && (
+              <Pressable onPress={() => speak(sentence)} style={st.replayRow}>
+                <Text style={[F.body, { flex: 1 }]}>{sentence} <Text style={{ fontSize: 12 }}>🔊</Text></Text>
+                <Text style={st.replayHint}>tap to replay</Text>
+              </Pressable>
+            )}
+          </View>
+
+          <Pressable onPress={next} style={st.nextBtn}>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
+              {i + 1 < lesson.quiz.length ? 'Next →' : 'See results'}
+            </Text>
+          </Pressable>
+        </>
       )}
     </View>
   );
+}
+
+// Build a speakable correct sentence: prefer explicit q.say, else fill the
+// blank (＿ or _) in the question stem with the correct option, else speak the
+// answer alone if it is Japanese.
+function correctSentence(q) {
+  if (q.say) return q.say;
+  const ans = q.options[q.answer];
+  if (/[＿_]/.test(q.q)) {
+    const filled = q.q.replace(/[＿_]+/, ans);
+    const jp = filled.match(/[\u3040-\u30ff\u4e00-\u9faf].*$/);
+    if (jp) return jp[0].replace(/[（(].*?[)）]/g, '').trim();
+  }
+  // fall back: if the answer is Japanese (not romaji/grammar symbol), speak it
+  if (/[\u3040-\u30ff\u4e00-\u9faf]/.test(ans) && !/[a-zA-Z]/.test(ans)) {
+    return ans.replace(/[〜～]/g, '');
+  }
+  return null;
 }
 
 function reviewGap(box) {
@@ -218,4 +263,13 @@ const st = StyleSheet.create({
   quizBtn: { marginTop: 22, backgroundColor: C.shu, borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   option: { borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 10 },
   explainBox: { backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, marginTop: 8 },
+  replayRow: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.washi,
+    borderRadius: 10, borderWidth: 1, borderColor: C.line, padding: 10, marginTop: 10,
+  },
+  replayHint: { fontSize: 10, color: C.inkSoft, letterSpacing: 0.5, marginLeft: 8 },
+  nextBtn: {
+    marginTop: 14, backgroundColor: C.green, borderRadius: 14,
+    paddingVertical: 15, alignItems: 'center',
+  },
 });
