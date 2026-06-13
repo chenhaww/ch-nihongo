@@ -8,12 +8,14 @@ import { C } from './src/theme';
 import HomeScreen from './src/screens/HomeScreen';
 import ReviewScreen from './src/screens/ReviewScreen';
 import GrammarScreen from './src/screens/GrammarScreen';
+import ConversationScreen from './src/screens/ConversationScreen';
 import ReferenceScreen from './src/screens/ReferenceScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
 const TABS = [
   { key: 'home', label: '今日', icon: '⛩' },
   { key: 'grammar', label: '文法', icon: '✏️' },
+  { key: 'conversation', label: '会話', icon: '💬' },
   { key: 'reference', label: '辞書', icon: '📖' },
   { key: 'settings', label: '設定', icon: '⚙' },
 ];
@@ -58,6 +60,7 @@ function Root() {
                 refreshKey={refreshKey} />
             )}
             {tab === 'grammar' && <GrammarScreen />}
+            {tab === 'conversation' && <ConversationScreen />}
             {tab === 'reference' && <ReferenceScreen />}
             {tab === 'settings' && <SettingsScreen />}
           </>

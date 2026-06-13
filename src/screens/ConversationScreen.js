@@ -1,0 +1,203 @@
+// src/screens/ConversationScreen.js — situational dialogue practice (prototype).
+// Pick the most natural reply each turn; hear the clerk and the model reply.
+// Offline: all content from src/conversation. Mirrors the grammar quiz UX.
+import React, { useEffect, useState } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { C, F, LEVEL_COLORS } from '../theme';
+import { speak } from '../tts';
+import { toRomaji } from '../romaji';
+import { SCENARIOS, scorableTurns } from '../conversation';
+
+export default function ConversationScreen() {
+  const [active, setActive] = useState(null);
+  if (active) return <Dialogue scenario={active} onExit={() => setActive(null)} />;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: C.washi, padding: 20, paddingBottom: 0 }}>
+      <Text style={[F.h1, { marginTop: 8 }]}>会話 — Situations</Text>
+      <Text style={[F.sub, { marginTop: 6, lineHeight: 19 }]}>
+        Role-play real settings. Pick the most natural reply for the register — the way you'd
+        actually say it to a clerk, a friend, or a boss.
+      </Text>
+      <ScrollView contentContainerStyle={{ paddingVertical: 16, paddingBottom: 30 }}>
+        {SCENARIOS.map(sc => (
+          <Pressable key={sc.id} onPress={() => setActive(sc)} style={st.card}>
+            <Text style={{ fontSize: 30 }}>{sc.emoji}</Text>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={F.h2}>{sc.setting} · {sc.settingEn}</Text>
+              <Text style={[F.sub, { marginTop: 2, lineHeight: 18 }]} numberOfLines={2}>{sc.goal}</Text>
+            </View>
+            <View style={[st.levelTag, { backgroundColor: LEVEL_COLORS[sc.level] }]}>
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 11 }}>N{sc.level}</Text>
+            </View>
+          </Pressable>
+        ))}
+        <Text style={[F.sub, { textAlign: 'center', marginTop: 18, lineHeight: 18 }]}>
+          More settings coming: restaurant, workplace, station, clinic…
+        </Text>
+      </ScrollView>
+    </View>
+  );
+}
+
+function Dialogue({ scenario, onExit }) {
+  const [started, setStarted] = useState(false);
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [natural, setNatural] = useState(0);   // first-try natural replies
+  const [done, setDone] = useState(false);
+
+  const turn = scenario.turns[i];
+
+  // Auto-speak the clerk's line when a new turn appears.
+  useEffect(() => {
+    if (started && !done && turn?.npc?.[1]) speak(turn.npc[1]);
+  }, [i, started, done]);
+
+  if (!started) {
+    return (
+      <ScrollView style={{ flex: 1, backgroundColor: C.washi }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+        <Pressable onPress={onExit}><Text style={[F.sub, { marginTop: 6 }]}>‹ back to situations</Text></Pressable>
+        <Text style={{ fontSize: 44, marginTop: 14 }}>{scenario.emoji}</Text>
+        <Text style={[F.h1, { marginTop: 8 }]}>{scenario.setting} · {scenario.settingEn}</Text>
+        <View style={st.goalBox}>
+          <Text style={st.goalLabel}>YOUR GOAL</Text>
+          <Text style={[F.body, { lineHeight: 22 }]}>{scenario.goal}</Text>
+        </View>
+        <Text style={[F.body, { lineHeight: 23, marginTop: 16 }]}>{scenario.intro}</Text>
+        <Pressable onPress={() => setStarted(true)} style={st.primaryBtn}>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Start the conversation</Text>
+        </Pressable>
+      </ScrollView>
+    );
+  }
+
+  if (done) {
+    const total = scorableTurns(scenario);
+    const allNatural = natural === total;
+    return (
+      <View style={{ flex: 1, backgroundColor: C.washi, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <Text style={{ fontSize: 52 }}>{allNatural ? '🎉' : '🗣'}</Text>
+        <Text style={[F.h1, { marginTop: 10 }]}>{natural} / {total} natural</Text>
+        <Text style={[F.sub, { marginTop: 8, textAlign: 'center', lineHeight: 20 }]}>{scenario.outro}</Text>
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 26 }}>
+          <Pressable onPress={() => { setStarted(false); setI(0); setPicked(null); setNatural(0); setDone(false); }}
+            style={[st.primaryBtn, { marginTop: 0, paddingHorizontal: 24 }]}>
+            <Text style={{ color: '#fff', fontWeight: '700' }}>Try again</Text>
+          </Pressable>
+          <Pressable onPress={onExit} style={[st.secondaryBtn]}>
+            <Text style={{ color: C.ink, fontWeight: '700' }}>Done</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  const chosen = picked !== null ? turn.options[picked] : null;
+  const model = turn.options.find(o => o.ok);   // first natural reply = model
+
+  function pick(idx) {
+    if (picked !== null) return;
+    setPicked(idx);
+    const opt = turn.options[idx];
+    if (opt.ok) {
+      setNatural(n => n + 1);
+      if (opt.kana) speak(opt.kana);
+    } else if (model?.kana) {
+      speak(model.kana);   // hear how to say it naturally instead
+    }
+  }
+
+  function next() {
+    if (i + 1 < scenario.turns.length) { setI(i + 1); setPicked(null); }
+    else setDone(true);
+  }
+
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: C.washi }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+        <Pressable onPress={onExit}><Text style={F.sub}>‹ exit</Text></Pressable>
+        <Text style={F.mono}>TURN {i + 1} / {scenario.turns.length}</Text>
+      </View>
+
+      {turn.stage && <Text style={[F.sub, { marginTop: 14, fontStyle: 'italic' }]}>{turn.stage}</Text>}
+
+      {/* Clerk's line — a speech bubble; tap to replay */}
+      <Pressable onPress={() => speak(turn.npc[1])} style={st.npcBubble}>
+        <Text style={st.npcWho}>店員 · CLERK</Text>
+        <Text style={[F.body, { fontSize: 19, lineHeight: 28 }]}>{turn.npc[0]} <Text style={{ fontSize: 13 }}>🔊</Text></Text>
+        {turn.npc[1] ? <Text style={[F.sub, { marginTop: 2, letterSpacing: 0.5 }]}>{toRomaji(turn.npc[1])}</Text> : null}
+        <Text style={[F.sub, { marginTop: 6, color: C.inkSoft }]}>{turn.npcEn}</Text>
+      </Pressable>
+
+      <Text style={[F.mono, { marginTop: 18 }]}>YOUR REPLY</Text>
+      <View style={{ marginTop: 8 }}>
+        {turn.options.map((opt, idx) => {
+          let bg = C.card, border = C.line;
+          if (picked !== null) {
+            if (opt.ok) { bg = C.greenSoft; border = C.green; }
+            else if (idx === picked) { bg = C.shuSoft; border = C.shu; }
+          }
+          return (
+            <Pressable key={idx} onPress={() => pick(idx)} style={[st.option, { backgroundColor: bg, borderColor: border }]}>
+              <Text style={{ fontSize: 17, color: C.ink, fontWeight: '600', lineHeight: 24 }}>{opt.ja}</Text>
+              <Text style={[F.sub, { marginTop: 2 }]}>{opt.en}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {chosen && (
+        <>
+          <View style={[st.feedbackBox, { borderColor: chosen.ok ? C.green : C.shu }]}>
+            <Text style={{ fontWeight: '700', color: chosen.ok ? C.green : C.shu, marginBottom: 4 }}>
+              {chosen.ok ? '✓ Natural here' : '✗ Off for this setting'}
+            </Text>
+            <Text style={[F.sub, { lineHeight: 19, color: C.ink }]}>{chosen.ok ? chosen.note : chosen.why}</Text>
+
+            {!chosen.ok && model && (
+              <Pressable onPress={() => model.kana && speak(model.kana)} style={st.replayRow}>
+                <Text style={[F.body, { flex: 1 }]}>Try: {model.ja} {model.kana ? <Text style={{ fontSize: 12 }}>🔊</Text> : null}</Text>
+                <Text style={st.replayHint}>tap to hear</Text>
+              </Pressable>
+            )}
+          </View>
+
+          <Pressable onPress={next} style={st.nextBtn}>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
+              {i + 1 < scenario.turns.length ? 'Next →' : 'Finish'}
+            </Text>
+          </Pressable>
+        </>
+      )}
+    </ScrollView>
+  );
+}
+
+const st = StyleSheet.create({
+  card: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.card,
+    borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 14, marginBottom: 10,
+  },
+  levelTag: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, marginLeft: 8 },
+  goalBox: { backgroundColor: C.greenSoft, borderRadius: 12, padding: 12, marginTop: 14 },
+  goalLabel: { fontSize: 10, fontWeight: '700', color: C.green, letterSpacing: 1, marginBottom: 4 },
+  npcBubble: {
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.line,
+    borderRadius: 14, borderTopLeftRadius: 4, padding: 14, marginTop: 12,
+  },
+  npcWho: { fontSize: 10, fontWeight: '700', color: C.inkSoft, letterSpacing: 1, marginBottom: 6 },
+  option: { borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 10 },
+  feedbackBox: { backgroundColor: C.card, borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 10 },
+  replayRow: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.washi,
+    borderRadius: 10, borderWidth: 1, borderColor: C.line, padding: 10, marginTop: 10,
+  },
+  replayHint: { fontSize: 10, color: C.inkSoft, letterSpacing: 0.5, marginLeft: 8 },
+  primaryBtn: { marginTop: 24, backgroundColor: C.shu, borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  secondaryBtn: {
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.line,
+    borderRadius: 14, paddingVertical: 15, paddingHorizontal: 30, alignItems: 'center',
+  },
+  nextBtn: { marginTop: 14, backgroundColor: C.green, borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+});
