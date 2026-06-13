@@ -10,6 +10,7 @@ import { buildQueue, buildPracticeQueue, grade, previewIntervals, Rating } from 
 import { speak } from '../tts';
 import { toRomaji, normalizeKana } from '../romaji';
 import { fetchSentences } from '../db';
+import { EMOJI } from '../emoji';
 
 const GRADE_META = [
   { r: Rating.Again, label: 'Forgot', color: '#9E2B25', help: 'Couldn\'t recall it — comes back in ~10 minutes, this session.' },
@@ -65,7 +66,7 @@ export default function ReviewScreen({ onDone, practice = false }) {
 
   const { item, type, typed } = entry;
   const front = type === 'vocab' ? item.expression : item.literal;
-  const speakText = type === 'vocab' ? item.expression : front;
+  const speakText = type === 'vocab' ? item.expression : kanjiSpeakText(item);
   const meanings = type === 'vocab'
     ? item.meaning
     : JSON.parse(item.meanings || '[]').join(', ');
@@ -117,7 +118,7 @@ export default function ReviewScreen({ onDone, practice = false }) {
           </View>
         </View>
 
-        <Pressable style={s.card} onPress={() => { if (!typed) setRevealed(true); }}>
+        <Pressable style={s.card} onPress={() => { if (!typed && !revealed) { setRevealed(true); speak(speakText); } }}>
           {typed && !revealed ? (
             // ---- EN → JP typed recall ----
             <View style={{ alignItems: 'center', width: '100%' }}>
@@ -168,8 +169,11 @@ export default function ReviewScreen({ onDone, practice = false }) {
                       </Text>
                     </>
                   )}
-                  {!typed && <Text style={[F.h2, { marginTop: 10, textAlign: 'center' }]}>{meanings}</Text>}
+                  {!typed && <Text style={[F.h2, { marginTop: 10, textAlign: 'center' }]}>{EMOJI[item.expression] ? EMOJI[item.expression] + ' ' : ''}{meanings}</Text>}
 
+                  {typed && EMOJI[item.expression] && (
+                    <Text style={{ fontSize: 30, marginTop: 6 }}>{EMOJI[item.expression]}</Text>
+                  )}
                   {sentences.map((sen, i) => (
                     <Pressable key={i} onPress={() => speak(sen.ja)} style={s.sentence}>
                       <Text style={[F.body, { lineHeight: 24 }]}>{sen.ja} <Text style={{ fontSize: 12 }}>🔊</Text></Text>
@@ -223,7 +227,7 @@ export default function ReviewScreen({ onDone, practice = false }) {
                 </View>
               ))}
               <Text style={[F.sub, { marginTop: 6, fontStyle: 'italic' }]}>
-                🔊 normal · 🐢 slow · ✍ cards ask you to type the Japanese{'\n'}tap anywhere to close
+                Words speak automatically on reveal · 🔊 repeat · 🐢 slow repeat\n✍ cards ask you to type the Japanese · sentences: tap to hear{'\n'}tap anywhere to close
               </Text>
             </View>
           </Pressable>
@@ -231,6 +235,13 @@ export default function ReviewScreen({ onDone, practice = false }) {
       </View>
     </KeyboardAvoidingView>
   );
+}
+
+function kanjiSpeakText(item) {
+  const kun = JSON.parse(item.kun_yomi || '[]');
+  const on = JSON.parse(item.on_yomi || '[]');
+  const r = (kun[0] || on[0] || item.literal).replace(/[.\-]/g, '');
+  return r;
 }
 
 function readingLine(jsonArr) {
