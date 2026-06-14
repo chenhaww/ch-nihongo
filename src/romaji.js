@@ -41,35 +41,68 @@ export function normalizeKana(s) {
     .replace(/[\s。、．，.,!?！？〜~ー]/g, m => (m === 'ー' ? 'ー' : ''));
 }
 
-export function toRomaji(kana) {
-  if (!kana) return '';
+// Tokenize kana into per-mora romaji units. Each token { t, p } where `p` marks
+// punctuation. Joining tokens plainly reproduces run-on Hepburn; joining with a
+// space between mora gives a reading "spaced according to the kana".
+function romajiTokens(kana) {
   const s = kataToHira(kana);
-  let out = '';
+  const toks = [];
   let i = 0;
+  // romaji + advance for a single plain mora starting at j (digraph or mono)
+  const moraAt = (j) => {
+    if (j >= s.length) return ['', 1];
+    const two = s.slice(j, j + 2);
+    if (DIGRAPHS[two]) return [DIGRAPHS[two], 2];
+    const c = s[j];
+    return [MONO[c] !== undefined ? MONO[c] : c, 1];
+  };
   while (i < s.length) {
     const ch = s[i];
-    // sokuon: double the next consonant
-    if (ch === 'っ') {
-      const rest = toRomaji(s.slice(i + 1));
-      const c = rest[0];
-      out += (c && !VOWELS.includes(c)) ? (c === 'c' ? 't' : c) : '';
-      return out + rest;
+    if (ch === 'っ') {                       // sokuon: double the next consonant
+      const [r, adv] = moraAt(i + 1);
+      const c = r[0];
+      const dbl = (c && !VOWELS.includes(c)) ? (c === 'c' ? 't' : c) : '';
+      toks.push({ t: dbl + r, p: false });
+      i += 1 + adv; continue;
     }
     const two = s.slice(i, i + 2);
-    if (DIGRAPHS[two]) { out += DIGRAPHS[two]; i += 2; continue; }
-    if (ch === 'ん') {
-      const nxt = toRomaji(s.slice(i + 1));
-      const c = nxt[0];
-      out += (c && (VOWELS.includes(c) || c === 'y')) ? "n'" : 'n';
-      return out + nxt;
-    }
-    if (ch === 'ー') {
-      const last = out.match(/[aiueo](?=[^aiueo]*$)/);
-      out += last ? last[0] : '-';
+    if (DIGRAPHS[two]) { toks.push({ t: DIGRAPHS[two], p: false }); i += 2; continue; }
+    if (ch === 'ん') {                        // n, or n' before a vowel / y
+      const [r] = moraAt(i + 1);
+      const c = r[0];
+      toks.push({ t: (c && (VOWELS.includes(c) || c === 'y')) ? "n'" : 'n', p: false });
       i++; continue;
     }
-    if (MONO[ch] !== undefined) { out += MONO[ch]; i++; continue; }
-    out += ch; i++;  // pass through kanji/latin unchanged
+    if (ch === 'ー') {                        // long mark: extend previous vowel
+      if (toks.length) {
+        const prev = toks[toks.length - 1];
+        const m = prev.t.match(/[aiueo](?=[^aiueo]*$)/);
+        prev.t += m ? m[0] : '-';
+      } else toks.push({ t: '-', p: false });
+      i++; continue;
+    }
+    if (MONO[ch] !== undefined) {
+      toks.push({ t: MONO[ch], p: (ch === '、' || ch === '。' || ch === '・') });
+      i++; continue;
+    }
+    toks.push({ t: ch, p: false });          // pass through kanji/latin unchanged
+    i++;
   }
-  return out;
+  return toks;
+}
+
+// kana → romaji. `spaced: true` separates each mora (e.g. こんにちは → "ko n ni chi wa")
+// so the romaji lines up with the kana; default stays run-on Hepburn.
+export function toRomaji(kana, { spaced = false } = {}) {
+  if (!kana) return '';
+  const toks = romajiTokens(kana);
+  if (!spaced) return toks.map(o => o.t).join('');
+  let out = '';
+  for (const o of toks) {
+    const t = o.p ? o.t : o.t.replace(/'/g, '');   // apostrophe redundant when spaced
+    if (!t) continue;
+    if (o.p) out = out.replace(/\s+$/, '') + t;     // punctuation hugs the previous mora
+    else out += (out === '' || out.endsWith(' ')) ? t : ' ' + t;
+  }
+  return out.replace(/\s+$/, '');
 }

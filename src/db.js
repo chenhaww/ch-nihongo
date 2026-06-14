@@ -83,6 +83,14 @@ export async function fetchSentences(contentDb, vocabId, limit = 2) {
      ORDER BY length(ja) LIMIT ?`, vocabId, limit);
 }
 
+// Other readings of the same written word (e.g. 開く → ひらく when studying あく),
+// so a card can flag that the kanji is also read differently elsewhere.
+export async function otherReadings(contentDb, expression, reading, limit = 2) {
+  return await contentDb.getAllAsync(
+    `SELECT reading, meaning FROM vocab
+     WHERE expression = ? AND reading != ? LIMIT ?`, expression, reading, limit);
+}
+
 export async function levelProgress(contentDb) {
   const totals = { vocab: {}, kanji: {} };
   for (const lvl of [5, 4, 3, 2, 1]) {

@@ -21,7 +21,7 @@ export default function GrammarScreen() {
   if (lesson) return <LessonView lesson={lesson} onBack={() => setLesson(null)} onQuiz={() => setQuiz(lesson)} />;
 
   const lessons = lessonsByLevel(level);
-  const available = level === 5;
+  const available = lessons.length > 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: C.washi, padding: 20, paddingBottom: 0 }}>
@@ -40,7 +40,7 @@ export default function GrammarScreen() {
           <Text style={{ fontSize: 40 }}>🚧</Text>
           <Text style={[F.h2, { marginTop: 10, textAlign: 'center' }]}>N{level} lessons coming soon</Text>
           <Text style={[F.sub, { marginTop: 6, textAlign: 'center' }]}>
-            N5 is the first batch. N4→N3 lessons arrive in upcoming content updates.
+            N5 and N4 are authored. N3→N1 lessons arrive in upcoming content updates.
           </Text>
         </View>
       ) : (
@@ -95,7 +95,7 @@ function LessonView({ lesson, onBack, onQuiz }) {
             <Text style={[F.body, { flex: 1, lineHeight: 24 }]}>{ex[0]} <Text style={{ fontSize: 12 }}>🔊</Text></Text>
             <Text style={st.regTag}>{reg[ex[2]] || ex[2].toUpperCase()}</Text>
           </View>
-          <Text style={[F.sub, { marginTop: 2, letterSpacing: 0.5 }]}>{toRomaji(ex[1])}</Text>
+          <Text style={[F.sub, { marginTop: 2, letterSpacing: 0.5 }]}>{toRomaji(ex[1], { spaced: true })}</Text>
         </Pressable>
       ))}
 

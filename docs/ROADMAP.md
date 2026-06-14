@@ -74,6 +74,34 @@ attribution in Settings.
 
 ---
 
+## Phase 3.5 — Situational dialogue (会話) 🟡 (prototype: convenience store)
+
+Register-aware role-play so the learner *uses* vocab/grammar in real settings, not just recalls
+words. **Authored, offline** content (no live chatbot — rule #1) in JS data files, like the grammar
+course; the politeness-register system is the hook (a clerk gets keigo + polite replies, a friend
+casual, a boss formal). See `docs/TASKS/conversation-practice.md`.
+
+- **Shipped (17 scenarios)**: コンビニ · レストラン · カフェ · 買い物 · 職場 (keigo) · 駅 ·
+  タクシー · 病院・薬局 · 美容院 · 道を聞く · ホテル · 郵便局 · 電話 (business keigo) · 空港 · 銀行 ·
+  区役所 · 友達に頼む (casual contrast). Each is a `src/conversation/<setting>.js` with a `speaker`
+  label, in the registry; the 会話 tab runs them turn-by-turn (`ConversationScreen`): the other
+  party's line auto-speaks, the learner responds, gets a "why this is off" note + spoken model
+  reply, and a first-try-natural score.
+- **Branching**: turns may carry `id`, and options a `goto` (a turn id, or `'end'`); the runner
+  follows the chosen option's branch (else the natural option's, else linear). カフェ forks on
+  for-here vs to-go into different endings. Scoring is over turns actually visited. Linear
+  scenarios (no `goto`) are unchanged.
+- **Two modes**: *Tap replies* (pick the natural option) and *Type replies · challenge* (produce
+  the line yourself; checked against accepted answers via `normalizeKana`, with an "I had it right —
+  count it" override for valid variants). Challenge mode is real output practice, bridging Phase 6.
+- **Progress persisted**: `conversation_progress` in user.db keeps the best first-try-natural ratio
+  per scenario; surfaced on each card ("best 80% natural" / "★ mastered") and on Home (会話 card).
+- Romaji under sentences is spaced per-kana (`toRomaji(x, { spaced: true })`).
+- **Next**: more settings; spoken replies (Phase 6 STT); branching dialogue; a register toggle.
+- **Later**: persist progress (`conversation_progress` in user.db), typed/spoken replies,
+  branching dialogue, and a register toggle. Dev-time authoring may draft variants (baked to
+  static data — stays offline at runtime).
+
 ## Phase 4 — Kanji writing practice ⬜
 
 Use the KanjiVG SVGs already in the DB (`kanji.svg` column). Progression per kanji:
